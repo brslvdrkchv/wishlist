@@ -1,0 +1,885 @@
+<!DOCTYPE html>
+<html lang="uk">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>Вишлист Борислава 🎁 | Wishlist</title>
+  
+  <meta name="description" content="Інтерактивний вишлист подарунків Борислава Деркачова. Обирайте подарунок та бронюйте в 1 клік!">
+  <meta property="og:title" content="Вишлист Борислава 🎁">
+  <meta property="og:description" content="Обирайте подарунок, переходьте до магазину та бронюйте його онлайн, щоб уникнути повторень!">
+  <meta property="og:type" content="website">
+
+  <!-- Fonts & Icons -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@500;700&display=swap" rel="stylesheet">
+
+  <style>
+    :root {
+      --bg: #07090e;
+      --surface: #0f172a;
+      --card-bg: rgba(17, 24, 39, 0.75);
+      --card-border: rgba(255, 255, 255, 0.08);
+      --card-border-hover: rgba(56, 189, 248, 0.4);
+      --text: #f8fafc;
+      --text-muted: #94a3b8;
+      --accent: #38bdf8;
+      --accent-rgb: 56, 189, 248;
+      --accent-glow: rgba(56, 189, 248, 0.25);
+      --gold: #f59e0b;
+      --gold-bg: rgba(245, 158, 11, 0.12);
+      --green: #10b981;
+      --green-bg: rgba(16, 185, 129, 0.12);
+      --red: #f43f5e;
+      --red-bg: rgba(244, 63, 94, 0.12);
+      --radius: 18px;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      -webkit-tap-highlight-color: transparent;
+    }
+
+    body {
+      font-family: 'Plus Jakarta Sans', sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      min-height: 100vh;
+      line-height: 1.5;
+      padding-bottom: 70px;
+      position: relative;
+      overflow-x: hidden;
+    }
+
+    /* Ambient background gradient meshes */
+    body::before {
+      content: '';
+      position: fixed;
+      top: -150px;
+      left: 50%;
+      transform: translateX(-50%);
+      width: 750px;
+      height: 450px;
+      background: radial-gradient(ellipse at center, rgba(56, 189, 248, 0.14) 0%, rgba(99, 102, 241, 0.08) 45%, transparent 70%);
+      z-index: -1;
+      pointer-events: none;
+    }
+
+    body::after {
+      content: '';
+      position: fixed;
+      bottom: -150px;
+      right: -100px;
+      width: 600px;
+      height: 450px;
+      background: radial-gradient(ellipse at center, rgba(168, 85, 247, 0.12) 0%, transparent 65%);
+      z-index: -1;
+      pointer-events: none;
+    }
+
+    .container {
+      max-width: 1140px;
+      margin: 0 auto;
+      padding: 32px 20px 20px 20px;
+    }
+
+    /* Header */
+    header {
+      text-align: center;
+      margin-bottom: 34px;
+    }
+
+    .hero-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 7px;
+      background: rgba(56, 189, 248, 0.1);
+      border: 1px solid rgba(56, 189, 248, 0.28);
+      color: var(--accent);
+      padding: 6px 14px;
+      border-radius: 999px;
+      font-size: 12px;
+      font-weight: 700;
+      letter-spacing: 0.04em;
+      text-transform: uppercase;
+      margin-bottom: 14px;
+      backdrop-filter: blur(8px);
+    }
+
+    .hero-badge .dot {
+      width: 7px;
+      height: 7px;
+      border-radius: 50%;
+      background: var(--accent);
+      box-shadow: 0 0 8px var(--accent);
+    }
+
+    h1 {
+      font-size: clamp(28px, 5vw, 44px);
+      font-weight: 800;
+      letter-spacing: -0.03em;
+      line-height: 1.15;
+      margin-bottom: 12px;
+      background: linear-gradient(135deg, #ffffff 40%, #94a3b8 100%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+
+    p.hero-desc {
+      font-size: 15px;
+      color: var(--text-muted);
+      max-width: 600px;
+      margin: 0 auto 20px auto;
+      line-height: 1.6;
+    }
+
+    /* Stats strip */
+    .stats-strip {
+      display: inline-flex;
+      background: rgba(15, 23, 42, 0.8);
+      border: 1px solid var(--card-border);
+      border-radius: 14px;
+      padding: 10px 20px;
+      gap: 24px;
+      backdrop-filter: blur(12px);
+      margin-bottom: 10px;
+    }
+
+    .stat-col {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+    }
+
+    .stat-num {
+      font-size: 18px;
+      font-weight: 800;
+      font-family: 'JetBrains Mono', monospace;
+      color: var(--text);
+    }
+
+    .stat-label {
+      font-size: 11px;
+      color: var(--text-muted);
+      text-transform: uppercase;
+      font-weight: 600;
+      letter-spacing: 0.05em;
+    }
+
+    /* Filters & Controls */
+    .controls-wrapper {
+      position: sticky;
+      top: 12px;
+      z-index: 50;
+      background: rgba(7, 9, 14, 0.85);
+      backdrop-filter: blur(20px);
+      border: 1px solid var(--card-border);
+      border-radius: 16px;
+      padding: 10px 14px;
+      margin-bottom: 28px;
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      align-items: center;
+      justify-content: space-between;
+      box-shadow: 0 10px 30px rgba(0, 0, 0, 0.4);
+    }
+
+    .filter-pills {
+      display: flex;
+      gap: 6px;
+      overflow-x: auto;
+      scrollbar-width: none;
+      padding: 2px 0;
+    }
+    .filter-pills::-webkit-scrollbar { display: none; }
+
+    .pill-btn {
+      background: rgba(255, 255, 255, 0.05);
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      color: var(--text-muted);
+      padding: 7px 15px;
+      border-radius: 999px;
+      font-size: 13px;
+      font-weight: 600;
+      cursor: pointer;
+      white-space: nowrap;
+      transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+    }
+
+    .pill-btn:hover {
+      background: rgba(255, 255, 255, 0.1);
+      color: var(--text);
+    }
+
+    .pill-btn.active {
+      background: var(--accent);
+      color: #07090e;
+      border-color: var(--accent);
+      font-weight: 700;
+      box-shadow: 0 0 15px var(--accent-glow);
+    }
+
+    .search-input {
+      background: rgba(255, 255, 255, 0.06);
+      border: 1px solid var(--card-border);
+      color: var(--text);
+      font-family: inherit;
+      padding: 7px 14px;
+      border-radius: 999px;
+      font-size: 13px;
+      outline: none;
+      width: 180px;
+      transition: all 0.2s;
+    }
+    .search-input:focus {
+      border-color: var(--accent);
+      background: rgba(255, 255, 255, 0.1);
+      width: 220px;
+    }
+    .search-input::placeholder { color: #64748b; }
+
+    /* Items Grid */
+    .wishlist-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+      gap: 20px;
+    }
+
+    .wish-card {
+      background: var(--card-bg);
+      border: 1px solid var(--card-border);
+      border-radius: var(--radius);
+      padding: 20px;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+      position: relative;
+      backdrop-filter: blur(14px);
+    }
+
+    .wish-card:hover {
+      border-color: var(--card-border-hover);
+      transform: translateY(-4px);
+      box-shadow: 0 14px 34px rgba(0, 0, 0, 0.5), 0 0 20px rgba(56, 189, 248, 0.12);
+    }
+
+    .wish-card.is-reserved {
+      border-color: rgba(244, 63, 94, 0.3);
+      background: rgba(17, 24, 39, 0.5);
+    }
+
+    .card-meta {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 12px;
+    }
+
+    .card-cat {
+      font-size: 11px;
+      font-weight: 700;
+      color: var(--text-muted);
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+    }
+
+    .card-price {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 13px;
+      font-weight: 700;
+      color: #38bdf8;
+      background: rgba(56, 189, 248, 0.1);
+      padding: 3px 9px;
+      border-radius: 6px;
+      border: 1px solid rgba(56, 189, 248, 0.2);
+    }
+
+    .card-title {
+      font-size: 16.5px;
+      font-weight: 700;
+      line-height: 1.4;
+      color: var(--text);
+      margin-bottom: 16px;
+    }
+
+    .card-status {
+      display: flex;
+      align-items: center;
+      gap: 7px;
+      font-size: 12px;
+      font-weight: 600;
+      margin-bottom: 16px;
+      padding: 6px 10px;
+      border-radius: 8px;
+    }
+
+    .card-status.free {
+      color: var(--green);
+      background: var(--green-bg);
+      border: 1px solid rgba(16, 185, 129, 0.25);
+    }
+
+    .card-status.reserved {
+      color: var(--red);
+      background: var(--red-bg);
+      border: 1px solid rgba(244, 63, 94, 0.25);
+    }
+
+    .status-dot {
+      width: 6px;
+      height: 6px;
+      border-radius: 50%;
+      background: currentColor;
+    }
+
+    .card-actions {
+      display: flex;
+      gap: 10px;
+    }
+
+    .action-btn {
+      flex: 1;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 7px;
+      padding: 10px 14px;
+      border-radius: 11px;
+      font-size: 13.5px;
+      font-weight: 700;
+      cursor: pointer;
+      text-decoration: none;
+      transition: all 0.2s;
+      border: none;
+      font-family: inherit;
+    }
+
+    .btn-store {
+      background: rgba(255, 255, 255, 0.08);
+      color: var(--text);
+      border: 1px solid rgba(255, 255, 255, 0.1);
+    }
+    .btn-store:hover {
+      background: rgba(255, 255, 255, 0.15);
+      border-color: rgba(255, 255, 255, 0.2);
+    }
+
+    .btn-claim {
+      background: linear-gradient(135deg, #0284c7 0%, #38bdf8 100%);
+      color: #07090e;
+      box-shadow: 0 4px 15px rgba(56, 189, 248, 0.3);
+    }
+    .btn-claim:hover {
+      filter: brightness(1.1);
+      box-shadow: 0 6px 20px rgba(56, 189, 248, 0.45);
+    }
+
+    .btn-unclaim {
+      background: rgba(244, 63, 94, 0.15);
+      color: var(--red);
+      border: 1px solid rgba(244, 63, 94, 0.3);
+    }
+    .btn-unclaim:hover {
+      background: rgba(244, 63, 94, 0.25);
+    }
+
+    /* Modal dialog */
+    .modal-overlay {
+      position: fixed;
+      inset: 0;
+      background: rgba(0, 0, 0, 0.75);
+      backdrop-filter: blur(10px);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 20px;
+      z-index: 100;
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity 0.25s ease;
+    }
+    .modal-overlay.active {
+      opacity: 1;
+      pointer-events: auto;
+    }
+
+    .modal-box {
+      background: #0f172a;
+      border: 1px solid var(--card-border);
+      border-radius: 20px;
+      padding: 26px;
+      width: 100%;
+      max-width: 440px;
+      box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.65);
+      transform: scale(0.95);
+      transition: transform 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+    }
+    .modal-overlay.active .modal-box {
+      transform: scale(1);
+    }
+
+    .modal-title {
+      font-size: 19px;
+      font-weight: 800;
+      margin-bottom: 8px;
+    }
+    .modal-subtitle {
+      font-size: 13px;
+      color: var(--text-muted);
+      margin-bottom: 18px;
+      line-height: 1.45;
+    }
+
+    .input-field {
+      width: 100%;
+      background: rgba(255, 255, 255, 0.05);
+      border: 1px solid var(--card-border);
+      color: var(--text);
+      font-family: inherit;
+      padding: 12px 16px;
+      border-radius: 12px;
+      font-size: 14px;
+      margin-bottom: 16px;
+      outline: none;
+      transition: border-color 0.2s;
+    }
+    .input-field:focus {
+      border-color: var(--accent);
+      background: rgba(255, 255, 255, 0.08);
+    }
+
+    .modal-actions {
+      display: flex;
+      gap: 10px;
+    }
+
+    /* Footer */
+    footer {
+      text-align: center;
+      margin-top: 50px;
+      font-size: 13px;
+      color: var(--text-muted);
+    }
+    footer a {
+      color: var(--accent);
+      text-decoration: none;
+    }
+
+    /* Toast */
+    .toast {
+      position: fixed;
+      bottom: 24px;
+      left: 50%;
+      transform: translateX(-50%) translateY(80px);
+      background: #1e293b;
+      border: 1px solid var(--accent);
+      color: var(--text);
+      padding: 12px 22px;
+      border-radius: 12px;
+      font-size: 13.5px;
+      font-weight: 600;
+      box-shadow: 0 10px 25px rgba(0,0,0,0.5);
+      z-index: 200;
+      transition: transform 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .toast.show {
+      transform: translateX(-50%) translateY(0);
+    }
+  </style>
+</head>
+<body>
+
+  <div class="container">
+    <header>
+      <div class="hero-badge">
+        <span class="dot"></span>
+        <span>Interactive Wishlist</span>
+      </div>
+      <h1>Вишлист Борислава 🎁</h1>
+      <p class="hero-desc">
+        Список бажаних подарунків, інструментів та гаджетів. Щоб уникнути однакових сюрпризів, оберіть потрібний подарунок та натисніть <b>«Зайняти»</b>.
+      </p>
+
+      <div class="stats-strip">
+        <div class="stat-col">
+          <span class="stat-num" id="totalCount">14</span>
+          <span class="stat-label">Всього</span>
+        </div>
+        <div class="stat-col">
+          <span class="stat-num" style="color:var(--green);" id="freeCount">14</span>
+          <span class="stat-label">Вільно</span>
+        </div>
+        <div class="stat-col">
+          <span class="stat-num" style="color:var(--red);" id="takenCount">0</span>
+          <span class="stat-label">Зайнято</span>
+        </div>
+      </div>
+    </header>
+
+    <!-- Filters & Search -->
+    <div class="controls-wrapper">
+      <div class="filter-pills" id="categoryPills">
+        <button class="pill-btn active" onclick="setFilter('all')">✨ Всі</button>
+        <button class="pill-btn" onclick="setFilter('free')">🟢 Тільки вільні</button>
+        <button class="pill-btn" onclick="setFilter('mine')">🎒 Мої зайняті</button>
+        <button class="pill-btn" onclick="setFilter('Інструменти & Крафт')">🛠 Інструменти</button>
+        <button class="pill-btn" onclick="setFilter('EDC & Мультитули')">🎒 EDC</button>
+        <button class="pill-btn" onclick="setFilter('Антистрес & Робоче місце')">🎲 Антистрес</button>
+        <button class="pill-btn" onclick="setFilter('Стиль & Одяг')">🧢 Стиль</button>
+      </div>
+
+      <input type="text" class="search-input" id="searchInput" placeholder="🔍 Пошук подарунка..." oninput="handleSearch(this.value)">
+    </div>
+
+    <!-- Items Grid -->
+    <div class="wishlist-grid" id="gridContainer"></div>
+
+    <footer>
+      <p>Створено з любов'ю для друзів • 2026 • <a href="https://github.com/brslvdrkchv" target="_blank">@brslvdrkchv</a></p>
+    </footer>
+  </div>
+
+  <!-- Claim Modal -->
+  <div class="modal-overlay" id="claimModal">
+    <div class="modal-box">
+      <h3 class="modal-title">🤝 Зайняти цей подарунок?</h3>
+      <p class="modal-subtitle" id="modalSubtitle">
+        Введіть ваше ім'я або нікнейм, щоб у списку було зафіксовано, що подарунок уже заброньовано.
+      </p>
+      <input type="text" id="claimerName" class="input-field" placeholder="Ваше ім'я (наприклад, Сашко або @telegram)" autofocus>
+      <div class="modal-actions">
+        <button class="action-btn btn-store" onclick="closeModal()">Скасувати</button>
+        <button class="action-btn btn-claim" onclick="confirmClaim()">Підтвердити</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="toast" id="toastBox">✅ Статус збережено!</div>
+
+  <script>
+    const INITIAL_ITEMS = [
+      {
+        id: "solder_kit",
+        title: "Набір для пайки 17-в-1 з цифровим паяльником та мультиметром",
+        cat: "Інструменти & Крафт",
+        price: "~850 ₴",
+        url: "https://shopokit.biz.ua/ru/soldering-kit-17-in-1/"
+      },
+      {
+        id: "werk_multitool",
+        title: "Повнорозмірний мультитул Werk 13-в-1 MFT-141AW у чохлі",
+        cat: "EDC & Мультитули",
+        price: "~420 ₴",
+        url: "https://rozetka.com.ua/ua/werk-bp121676/p394065396/"
+      },
+      {
+        id: "screwdrivers_25in1",
+        title: "Набір прецизійних магнітних викруток 25-в-1 у компактному кейсі",
+        cat: "Інструменти & Крафт",
+        price: "~290 ₴",
+        url: "https://vtrendee.com.ua/ua/p1924693192-nabor-otvertok-magnitnye.html"
+      },
+      {
+        id: "chest_bag",
+        title: "Нагрудна тактична сумка-кобура Hgulbag",
+        cat: "EDC & Мультитули",
+        price: "~550 ₴",
+        url: "https://sumka.shop/ua/p1211886843-nagrudnaya-sumka-hgulbag.html"
+      },
+      {
+        id: "docker_cap",
+        title: "Кепка-докер в стилі Chrome Hearts (чорна, унісекс)",
+        cat: "Стиль & Одяг",
+        price: "~390 ₴",
+        url: "https://rozetka.com.ua/ua/606082441/p606082441/"
+      },
+      {
+        id: "smart_socket_tuya",
+        title: "Розумна Wi-Fi розетка Tuya Smart з моніторингом енергії",
+        cat: "Інструменти & Крафт",
+        price: "~320 ₴",
+        url: "https://prom.ua/p2558898766-umnaya-rozetka-tuya.html"
+      },
+      {
+        id: "usb_enter",
+        title: "Гігантська антистрес-кнопка Enter (USB з м'яким наповнювачем)",
+        cat: "Антистрес & Робоче місце",
+        price: "~340 ₴",
+        url: "https://rozetka.com.ua/ua/609586700/p609586700/"
+      },
+      {
+        id: "laptop_screws",
+        title: "Набір гвинтів для ремонту ноутбука та ПК (500 шт)",
+        cat: "Інструменти & Крафт",
+        price: "~250 ₴",
+        url: "https://stall.ua/uk/product/7416/"
+      },
+      {
+        id: "spinner_ring",
+        title: "Кільце-антистрес спіннер з рухомою шестернею (чорне, 21 р-р)",
+        cat: "Стиль & Одяг",
+        price: "~220 ₴",
+        url: "https://zigzag.com.ua/product/koltso-antistress-spinner-s-vrashchayushcheyesya-shesterney-chernoye/"
+      },
+      {
+        id: "card_multitool",
+        title: "Карта-мультитул кредитка BTB 10-в-1",
+        cat: "EDC & Мультитули",
+        price: "~120 ₴",
+        url: "https://rozetka.com.ua/ua/85285302/p85285302/"
+      },
+      {
+        id: "tweezers_pair",
+        title: "Прецизійні вигнуті пінцети для електроніки (2 шт)",
+        cat: "Інструменти & Крафт",
+        price: "~150 ₴",
+        url: "https://prom.ua/p3191055604-pintset-izognutyj-tweezers.html"
+      },
+      {
+        id: "duck_auto",
+        title: "Гумова якісна качечка в авто (чорна, у шоломі з пропелером)",
+        cat: "Антистрес & Робоче місце",
+        price: "~180 ₴",
+        url: "https://fine-things.com.ua/ua/p1878980461-rezinovaya-utochka-mashinu.html"
+      },
+      {
+        id: "lens_case_space",
+        title: "Набір з контейнером для контактних лінз «Космос»",
+        cat: "Антистрес & Робоче місце",
+        price: "~140 ₴",
+        url: "https://tolanis.in.ua/p/1589447072-nabor-s-konteynerom-dlya-kontaktnyh-linz-kosmos-iy0025/"
+      },
+      {
+        id: "joom_item",
+        title: "Тактичний міцний карабін / підвіс EDC",
+        cat: "EDC & Мультитули",
+        price: "~250 ₴",
+        url: "https://www.joom.com/uk/products/6aabdd241054c001865c5be7"
+      }
+    ];
+
+    // State management via localStorage & synchronization
+    const STORAGE_KEY = 'boryslav_wishlist_state_v1';
+    const MY_ID_KEY = 'boryslav_wishlist_client_id';
+
+    function getClientId() {
+      let id = localStorage.getItem(MY_ID_KEY);
+      if (!id) {
+        id = 'user_' + Math.random().toString(36).substring(2, 9);
+        localStorage.setItem(MY_ID_KEY, id);
+      }
+      return id;
+    }
+
+    const myClientId = getClientId();
+
+    function getStoredState() {
+      try {
+        return JSON.parse(localStorage.getItem(STORAGE_KEY)) || {};
+      } catch (e) {
+        return {};
+      }
+    }
+
+    function saveStoredState(state) {
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+    }
+
+    let currentFilter = 'all';
+    let searchQuery = '';
+    let targetItemId = null;
+
+    function showToast(msg) {
+      const t = document.getElementById('toastBox');
+      t.textContent = msg;
+      t.classList.add('show');
+      setTimeout(() => t.classList.remove('show'), 2800);
+    }
+
+    function setFilter(filter) {
+      currentFilter = filter;
+      document.querySelectorAll('.pill-btn').forEach(btn => btn.classList.remove('active'));
+      event.target.classList.add('active');
+      render();
+    }
+
+    function handleSearch(val) {
+      searchQuery = val.toLowerCase().trim();
+      render();
+    }
+
+    function openClaimModal(id) {
+      targetItemId = id;
+      const item = INITIAL_ITEMS.find(x => x.id === id);
+      document.getElementById('modalSubtitle').innerHTML = `Ви обрали: <b>${item.title}</b>.<br>Вкажіть ваше ім'я або контакт, щоб позиція закріпилася за вами.`;
+      const prevName = localStorage.getItem('boryslav_wishlist_last_name') || '';
+      document.getElementById('claimerName').value = prevName;
+      document.getElementById('claimModal').classList.add('active');
+      document.getElementById('claimerName').focus();
+    }
+
+    function closeModal() {
+      document.getElementById('claimModal').classList.remove('active');
+      targetItemId = null;
+    }
+
+    function confirmClaim() {
+      const name = document.getElementById('claimerName').value.trim() || 'Друг';
+      localStorage.setItem('boryslav_wishlist_last_name', name);
+
+      const state = getStoredState();
+      state[targetItemId] = {
+        reserved: true,
+        by: name,
+        clientId: myClientId,
+        at: new Date().toISOString()
+      };
+      saveStoredState(state);
+      closeModal();
+      showToast(`🎉 Ви успішно зайняли цей подарунок! Дякую, ${name}!`);
+      render();
+    }
+
+    function releaseClaim(id) {
+      const state = getStoredState();
+      if (state[id]) {
+        delete state[id];
+        saveStoredState(state);
+        showToast('ℹ️ Бронювання скасовано. Позиція знову вільна!');
+        render();
+      }
+    }
+
+    function render() {
+      const state = getStoredState();
+      const container = document.getElementById('gridContainer');
+      container.innerHTML = '';
+
+      let freeCount = 0;
+      let takenCount = 0;
+
+      INITIAL_ITEMS.forEach(it => {
+        const itemState = state[it.id];
+        if (itemState && itemState.reserved) takenCount++;
+        else freeCount++;
+      });
+
+      document.getElementById('totalCount').textContent = INITIAL_ITEMS.length;
+      document.getElementById('freeCount').textContent = freeCount;
+      document.getElementById('takenCount').textContent = takenCount;
+
+      const filtered = INITIAL_ITEMS.filter(it => {
+        const itemState = state[it.id] || {};
+        const isReserved = !!itemState.reserved;
+        const isMine = itemState.clientId === myClientId;
+
+        // Search match
+        if (searchQuery && !it.title.toLowerCase().includes(searchQuery) && !it.cat.toLowerCase().includes(searchQuery)) {
+          return false;
+        }
+
+        if (currentFilter === 'all') return true;
+        if (currentFilter === 'free') return !isReserved;
+        if (currentFilter === 'mine') return isMine;
+        return it.cat === currentFilter;
+      });
+
+      if (filtered.length === 0) {
+        container.innerHTML = `
+          <div style="grid-column: 1 / -1; text-align: center; padding: 40px; color: var(--text-muted);">
+            Нічого не знайдено за заданими фільтрами ✨
+          </div>
+        `;
+        return;
+      }
+
+      filtered.forEach(it => {
+        const itemState = state[it.id] || {};
+        const isReserved = !!itemState.reserved;
+        const isMine = itemState.clientId === myClientId;
+
+        const card = document.createElement('div');
+        card.className = `wish-card ${isReserved ? 'is-reserved' : ''}`;
+
+        let statusHtml = '';
+        let buttonHtml = '';
+
+        if (!isReserved) {
+          statusHtml = `
+            <div class="card-status free">
+              <span class="status-dot"></span>
+              <span>Вільний для подарунка ✨</span>
+            </div>
+          `;
+          buttonHtml = `
+            <button class="action-btn btn-claim" onclick="openClaimModal('${it.id}')">
+              🤝 Зайняти
+            </button>
+          `;
+        } else if (isMine) {
+          statusHtml = `
+            <div class="card-status" style="background: rgba(56, 189, 248, 0.15); color: var(--accent); border: 1px solid rgba(56, 189, 248, 0.3);">
+              <span class="status-dot" style="background:var(--accent);"></span>
+              <span>Заброньовано вами (${itemState.by}) 🎉</span>
+            </div>
+          `;
+          buttonHtml = `
+            <button class="action-btn btn-unclaim" onclick="releaseClaim('${it.id}')">
+              ❌ Скасувати
+            </button>
+          `;
+        } else {
+          statusHtml = `
+            <div class="card-status reserved">
+              <span class="status-dot"></span>
+              <span>Зайнято (${itemState.by || 'хтось із друзів'}) 🔒</span>
+            </div>
+          `;
+          buttonHtml = `
+            <button class="action-btn btn-store" style="opacity: 0.6; cursor: not-allowed;" disabled>
+              🔒 Вже обрано
+            </button>
+          `;
+        }
+
+        card.innerHTML = `
+          <div>
+            <div class="card-meta">
+              <span class="card-cat">${it.cat}</span>
+              <span class="card-price">${it.price}</span>
+            </div>
+            <h3 class="card-title">${it.title}</h3>
+            ${statusHtml}
+          </div>
+          <div class="card-actions">
+            <a href="${it.url}" target="_blank" rel="noopener noreferrer" class="action-btn btn-store">
+              🛒 Магазин
+            </a>
+            ${buttonHtml}
+          </div>
+        `;
+
+        container.appendChild(card);
+      });
+    }
+
+    // Close modal on escape key
+    document.addEventListener('keydown', (e) => {
+      if (e.key === 'Escape') closeModal();
+      if (e.key === 'Enter' && document.getElementById('claimModal').classList.contains('active')) {
+        confirmClaim();
+      }
+    });
+
+    render();
+  </script>
+</body>
+</html>
