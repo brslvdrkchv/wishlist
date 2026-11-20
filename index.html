@@ -659,6 +659,42 @@
       box-shadow: 0 6px 20px rgba(245, 158, 11, 0.45);
     }
 
+    .sync-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 7px;
+      font-size: 11.5px;
+      font-weight: 600;
+      color: var(--text-muted);
+      background: rgba(15, 23, 42, 0.6);
+      border: 1px solid var(--card-border);
+      padding: 4px 12px;
+      border-radius: 999px;
+      margin-top: 12px;
+      transition: all 0.25s ease;
+    }
+    .sync-dot {
+      width: 7px;
+      height: 7px;
+      border-radius: 50%;
+      background: var(--green);
+      box-shadow: 0 0 8px var(--green);
+      transition: background 0.3s ease;
+    }
+    .sync-dot.syncing {
+      background: var(--accent);
+      box-shadow: 0 0 8px var(--accent);
+      animation: syncPulse 0.9s infinite alternate;
+    }
+    .sync-dot.offline {
+      background: var(--gold);
+      box-shadow: 0 0 8px var(--gold);
+    }
+    @keyframes syncPulse {
+      0% { opacity: 0.35; transform: scale(0.85); }
+      100% { opacity: 1; transform: scale(1.15); }
+    }
+
   </style>
 </head>
 <body>
@@ -686,6 +722,13 @@
         <div class="stat-col">
           <span class="stat-num" style="color:var(--red);" id="takenCount">0</span>
           <span class="stat-label">Зайнято</span>
+        </div>
+      </div>
+
+      <div>
+        <div class="sync-badge" id="syncBadge">
+          <span class="sync-dot" id="syncDot"></span>
+          <span id="syncText">Хмарна синхронізація активна</span>
         </div>
       </div>
     </header>
@@ -784,7 +827,7 @@
       <input type="text" id="claimerName" class="input-field" placeholder="Ваше ім'я (наприклад, Сашко або @telegram)" autofocus>
       <div class="modal-actions">
         <button class="action-btn btn-store" onclick="closeModal()">Скасувати</button>
-        <button class="action-btn btn-claim" onclick="confirmClaim()">Підтвердити</button>
+        <button class="action-btn btn-claim" id="confirmClaimBtn" onclick="confirmClaim()">Підтвердити</button>
       </div>
     </div>
   </div>
@@ -893,7 +936,17 @@
       }
     ];
 
-    // State management via localStorage & synchronization
+    // ================= ХМАРНИЙ БЕКЕНД ТА СИНХРОНІЗАЦІЯ =================
+    // За замовчуванням підключено швидку безкоштовну хмарну KV-базу (працює одразу).
+    // За бажанням ви можете вказати URL свого Google Apps Script (Google Таблиці) або Firebase RTDB!
+    const BACKEND_CONFIG = {
+      // 'kvdb' | 'google_sheets' | 'firebase'
+      type: 'kvdb',
+      kvdbUrl: 'https://kvdb.io/7x6jKkXRGd2WKdPurLwMeS/wishlist_state',
+      googleSheetsUrl: '', // URL веб-додатку Google Apps Script (якщо підключаєте таблицю)
+      firebaseUrl: ''      // URL Firebase Realtime Database
+    };
+
     const STORAGE_KEY = 'boryslav_wishlist_state_v1';
     const MY_ID_KEY = 'boryslav_wishlist_client_id';
 
@@ -917,7 +970,85 @@
     }
 
     function saveStoredState(state) {
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+      try {
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+      } catch (e) {
+        console.warn('LocalStorage save error:', e);
+      }
+    }
+
+    function updateSyncStatus(status, text) {
+      const dot = document.getElementById('syncDot');
+      const txt = document.getElementById('syncText');
+      if (!dot || !txt) return;
+
+      dot.className = 'sync-dot ' + (status === 'syncing' ? 'syncing' : (status === 'offline' ? 'offline' : ''));
+      txt.textContent = text;
+    }
+
+    // Хмарне завантаження стану
+    async function fetchRemoteState() {
+      updateSyncStatus('syncing', 'Синхронізація...');
+      try {
+        let state = null;
+        if (BACKEND_CONFIG.type === 'google_sheets' && BACKEND_CONFIG.googleSheetsUrl) {
+          const res = await fetch(BACKEND_CONFIG.googleSheetsUrl + '?_t=' + Date.now(), { cache: 'no-store' });
+          if (res.ok) {
+            const data = await res.json();
+            state = data.state || data;
+          }
+        } else if (BACKEND_CONFIG.type === 'firebase' && BACKEND_CONFIG.firebaseUrl) {
+          const res = await fetch(BACKEND_CONFIG.firebaseUrl + '?_t=' + Date.now(), { cache: 'no-store' });
+          if (res.ok) state = await res.json();
+        } else {
+          // KVdb
+          const res = await fetch(BACKEND_CONFIG.kvdbUrl + '?_t=' + Date.now(), { cache: 'no-store' });
+          if (res.ok) state = await res.json();
+        }
+
+        if (state && typeof state === 'object') {
+          saveStoredState(state);
+          updateSyncStatus('online', 'Хмарна синхронізація активна');
+          return state;
+        }
+      } catch (err) {
+        console.warn('Cloud sync unavailable, using local cache:', err);
+        updateSyncStatus('offline', 'Офлайн (локальні дані)');
+      }
+      return getStoredState();
+    }
+
+    // Хмарне збереження стану
+    async function saveRemoteState(state) {
+      updateSyncStatus('syncing', 'Збереження в хмару...');
+      try {
+        if (BACKEND_CONFIG.type === 'google_sheets' && BACKEND_CONFIG.googleSheetsUrl) {
+          await fetch(BACKEND_CONFIG.googleSheetsUrl, {
+            method: 'POST',
+            headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+            body: JSON.stringify({ action: 'sync_all', state: state })
+          });
+        } else if (BACKEND_CONFIG.type === 'firebase' && BACKEND_CONFIG.firebaseUrl) {
+          await fetch(BACKEND_CONFIG.firebaseUrl, {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(state)
+          });
+        } else {
+          // KVdb
+          await fetch(BACKEND_CONFIG.kvdbUrl, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(state)
+          });
+        }
+        updateSyncStatus('online', 'Синхронізовано з хмарою');
+        return true;
+      } catch (err) {
+        console.error('Save to cloud failed:', err);
+        updateSyncStatus('offline', 'Помилка хмари (збережено локально)');
+        throw err;
+      }
     }
 
     let currentFilter = 'all';
@@ -946,7 +1077,7 @@
     function openClaimModal(id) {
       targetItemId = id;
       const item = INITIAL_ITEMS.find(x => x.id === id);
-      document.getElementById('modalSubtitle').innerHTML = `Ви обрали: <b>${item.title}</b>.<br>Вкажіть ваше ім'я або контакт, щоб позиція закріпилася за вами.`;
+      document.getElementById('modalSubtitle').innerHTML = `Ви обрали: <b>${item.title}</b>.<br>Вкажіть ваше ім'я або контакт, щоб позиція закріпилася за вами у хмарі.`;
       const prevName = localStorage.getItem('boryslav_wishlist_last_name') || '';
       document.getElementById('claimerName').value = prevName;
       document.getElementById('claimModal').classList.add('active');
@@ -956,32 +1087,82 @@
     function closeModal() {
       document.getElementById('claimModal').classList.remove('active');
       targetItemId = null;
+      const btn = document.getElementById('confirmClaimBtn');
+      if (btn) {
+        btn.disabled = false;
+        btn.textContent = 'Підтвердити';
+      }
     }
 
-    function confirmClaim() {
-      const name = document.getElementById('claimerName').value.trim() || 'Друг';
+    async function confirmClaim() {
+      const nameInput = document.getElementById('claimerName');
+      const name = nameInput.value.trim() || 'Друг';
       localStorage.setItem('boryslav_wishlist_last_name', name);
 
-      const state = getStoredState();
-      state[targetItemId] = {
-        reserved: true,
-        by: name,
-        clientId: myClientId,
-        at: new Date().toISOString()
-      };
-      saveStoredState(state);
-      closeModal();
-      showToast(`🎉 Ви успішно зайняли цей подарунок! Дякую, ${name}!`);
-      render();
+      const confirmBtn = document.getElementById('confirmClaimBtn');
+      if (confirmBtn) {
+        confirmBtn.disabled = true;
+        confirmBtn.textContent = 'Збереження...';
+      }
+
+      try {
+        // Отримуємо найсвіжіший стан з хмари для запобігання конфліктам
+        const currentState = await fetchRemoteState();
+        if (currentState[targetItemId] && currentState[targetItemId].reserved && currentState[targetItemId].clientId !== myClientId) {
+          showToast(`⚠️ Упс! Цей подарунок щойно зайняв ${currentState[targetItemId].by || 'інший друг'}.`);
+          closeModal();
+          render();
+          return;
+        }
+
+        currentState[targetItemId] = {
+          reserved: true,
+          by: name,
+          clientId: myClientId,
+          at: new Date().toISOString()
+        };
+
+        // Миттєво оновлюємо локально для плавності інтерфейсу
+        saveStoredState(currentState);
+        render();
+        closeModal();
+        showToast(`🎉 Ви успішно зайняли цей подарунок! Дякую, ${name}!`);
+
+        // Відправляємо в хмару
+        await saveRemoteState(currentState);
+      } catch (err) {
+        console.error('Error claiming:', err);
+        showToast('⚠️ Статус збережено локально, синхронізація повториться автоматично.');
+      } finally {
+        if (confirmBtn) {
+          confirmBtn.disabled = false;
+          confirmBtn.textContent = 'Підтвердити';
+        }
+      }
     }
 
-    function releaseClaim(id) {
-      const state = getStoredState();
-      if (state[id]) {
-        delete state[id];
-        saveStoredState(state);
-        showToast('ℹ️ Бронювання скасовано. Позиція знову вільна!');
+    async function releaseClaim(id) {
+      if (!confirm('Ви дійсно бажаєте скасувати своє бронювання цього подарунка?')) {
+        return;
+      }
+
+      showToast('⏳ Скасування бронювання...');
+      try {
+        const state = await fetchRemoteState();
+        if (state[id]) {
+          delete state[id];
+          saveStoredState(state);
+          render();
+          await saveRemoteState(state);
+          showToast('ℹ️ Бронювання скасовано. Позиція знову вільна!');
+        }
+      } catch (err) {
+        console.error('Error releasing:', err);
+        const localState = getStoredState();
+        delete localState[id];
+        saveStoredState(localState);
         render();
+        showToast('ℹ️ Бронювання скасовано локально.');
       }
     }
 
@@ -1008,7 +1189,6 @@
         const isReserved = !!itemState.reserved;
         const isMine = itemState.clientId === myClientId;
 
-        // Search match
         if (searchQuery && !it.title.toLowerCase().includes(searchQuery) && !it.cat.toLowerCase().includes(searchQuery)) {
           return false;
         }
@@ -1098,7 +1278,7 @@
       });
     }
 
-    // Close modal on escape key
+    // Закриття модалки по Escape та Enter
     document.addEventListener('keydown', (e) => {
       if (e.key === 'Escape') closeModal();
       if (e.key === 'Enter' && document.getElementById('claimModal').classList.contains('active')) {
@@ -1106,7 +1286,24 @@
       }
     });
 
+    // Первинний рендер з локального кешу (миттєве завантаження)
     render();
+
+    // Завантаження актуальних даних з хмари при старті
+    fetchRemoteState().then(() => render());
+
+    // Автоматична синхронізація кожні 25 секунд та при поверненні на вкладку браузера
+    setInterval(() => {
+      if (document.visibilityState === 'visible') {
+        fetchRemoteState().then(() => render());
+      }
+    }, 25000);
+
+    document.addEventListener('visibilitychange', () => {
+      if (document.visibilityState === 'visible') {
+        fetchRemoteState().then(() => render());
+      }
+    });
   </script>
 </body>
 </html>
